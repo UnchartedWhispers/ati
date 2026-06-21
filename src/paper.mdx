@@ -1,0 +1,160 @@
+---
+title: "Artificial Tripartite Intelligence"
+subtitle: "A Bio-Inspired, Sensor-First Architecture for Physical AI"
+institution: Seoul National University
+authors:
+  - name: You Rim Choi
+    url: https://yourimchoi.github.io
+    notes: ["*"]
+  - name: Subeom Park
+    url: https://www.linkedin.com/in/subeom-park-79aa10131/
+    notes: ["*"]
+  - name: Reeahn Kim
+    url: https://www.linkedin.com/in/reeahn-kim-a76787279/
+  - name: GiHyeon Kim
+    url: https://www.linkedin.com/in/gihyeon-kim-a684a1209/
+  - name: Hyung-Sin Kim
+    url: https://sites.google.com/site/hskiminthebody
+    notes: ["†"]
+conference: MobiSys 2026
+notes:
+  - symbol: "*"
+    text: Equal contribution
+  - symbol: †
+    text: Corresponding author
+links:
+  - name: Paper
+    url: https://dl.acm.org/doi/abs/10.1145/3745756.3809242
+    icon: ri:file-pdf-2-line
+  - name: arXiv
+    url: https://arxiv.org/abs/2604.13959v1
+    icon: academicons:arxiv
+  - name: Code
+    url: https://github.com/sunake7/ATI
+    icon: ri:github-line
+  - name: Demo Paper
+    url: https://dl.acm.org/doi/abs/10.1145/3812835.3814979
+    icon: ri:article-line
+  - name: Demo Video
+    url: https://youtu.be/ck4-pPziEZ0?si=57uLyG6YIADwRbWA
+    icon: ri:youtube-line
+  - name: BibTeX
+    url: "#bibtex"
+    icon: ri:double-quotes-l
+
+theme: device
+favicon: favicon.svg
+description: "Artificial Tripartite Intelligence (ATI): a bio-inspired, sensor-first framework that treats sensing as an active part of physical AI, coordinating reflexive control, sensor calibration, on-device perception, and selective escalation to deep reasoning."
+thumbnail: thumbnail.png
+---
+
+import Video from "./components/Video.astro";
+import HighlightedSection from "./components/HighlightedSection.astro";
+import SmallCaps from "./components/SmallCaps.astro";
+import Figure from "./components/Figure.astro";
+import Picture from "./components/Picture.astro";
+import TwoColumns from "./components/TwoColumns.astro";
+import YouTubeVideo from "./components/YouTubeVideo.astro";
+import Carousel from "./components/Carousel.astro";
+import CarouselSlide from "./components/CarouselSlide.astro";
+import Wide from "./components/Wide.astro";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/starwind/tabs";
+import { Comparison } from "./components/Comparison.tsx";
+
+import framework from "./assets/framework.png";
+import setup from "./assets/setup.png";
+import l2policy from "./assets/l2-policy.png";
+import qualitative from "./assets/qualitative.png";
+import results from "./assets/results.png";
+import auditory from "./assets/auditory.png";
+
+## TL;DR
+
+**Artificial Tripartite Intelligence (ATI)** treats sensing as an *active* part of physical AI. Instead of feeding fixed camera frames to a model, ATI puts sensor control at the front of the loop, fixing exposure, and motion blur *before* perception, and only escalates to a large remote model when it has to. The result: an on-device perception stack that stays accurate under hard capture conditions while calling the cloud far less often.
+
+<Wide>
+<Figure>
+  <Picture slot="figure" src={framework} alt="ATI architecture. (a) ATI role mapping for a camera-based system: a four-level L1 to L4 stack (Brainstem for reflex control, Cerebellum for sensor calibration, BGN for selection and execution, HCN for deep reasoning) mapped onto a brain, with FPN routing between local execution and deeper reasoning. (b) General ATI interfaces, from physical-world sensor inputs to on-device processing and edge/cloud reasoning." />
+  <Fragment slot="caption">ATI architecture. (a) ATI role mapping for a camera-based system. (b) General ATI interfaces, from physical-world sensor inputs to on-device processing and edge/cloud reasoning.</Fragment>
+</Figure>
+</Wide>
+
+<HighlightedSection>
+
+## Abstract
+
+As AI moves from data centers to robots and wearables, scaling ever-larger models becomes insufficient. Physical AI operates under tight latency, energy, privacy, and reliability constraints, and its performance depends not only on model capacity but also on how signals are acquired through controllable sensors in dynamic environments. We present Artificial Tripartite Intelligence (ATI), a bio-inspired, sensor-first architectural contract for physical AI. ATI is tripartite at the systems level: a Brainstem (L1) provides reflexive safety and signal-integrity control, a Cerebellum (L2) performs continuous sensor calibration, and a Cerebral Inference Subsystem spanning L3/L4 supports routine skill selection and execution, coordination, and deep reasoning. This modular organization allows sensor control, adaptive sensing, edge-cloud execution, and foundation model reasoning to co-evolve within one closed-loop architecture, while keeping time-critical sensing and control on device and invoking higher-level inference only when needed. We instantiate ATI in a mobile camera prototype under dynamic lighting and motion. In our routed evaluation (L3-L4 split inference), compared to the default auto-exposure setting, ATI (L1/L2 adaptive sensing) improves end-to-end accuracy from 53.8% to 88% while reducing remote L4 invocations by 43.3%. These results show the value of co-designing sensing and inference for embodied AI.
+
+</HighlightedSection>
+
+## Motivation
+
+The same scene captured under different conditions can be trivial or impossible for a perception model. Auto-exposure optimizes images for *human* viewers, not for downstream AI, and its choices (long exposures, high ISO) often introduce exactly the motion blur and noise that hurt on-device models most.
+
+<Figure>
+  <Picture slot="figure" src={setup} alt="The same tabletop driving scene captured under Bright and Dark conditions, with a small camera-equipped RC car on a looped track and a teddy bear target." />
+  <Fragment slot="caption">The same scene under **Bright** and **Dark** conditions. Lighting and motion dramatically change what the sensor delivers to perception, motivating sensing as an active control problem rather than a fixed front-end.</Fragment>
+</Figure>
+
+## Method
+
+ATI maps four levels of control onto a familiar biological hierarchy. Lower levels are fast, reflexive, and always on-device; higher levels are slower, more capable, and escalated to only when needed.
+
+The **Cerebellum (L2)** is where the sensor-calibration policy is learned. We frame it as a contextual multi-armed bandit: given device and environmental context (motion from the accelerometer/gyroscope, illuminance from the light sensor), the policy selects bounded adjustments to ISO and exposure, always within the safety envelope enforced by the **Brainstem (L1)**, and is rewarded by the downstream perception signal (confidence and sharpness) produced by **L3**. Once learned, the policy is consolidated into a compact lookup over motion × light states for fast, low-power inference.
+
+<Figure>
+  <Picture slot="figure" src={l2policy} alt="L2 sensor-calibration learning loop framed as a contextual multi-armed bandit, with action (ISO/exposure deltas within L1 bounds), L3-based reward (confidence + sharpness), and the consolidated motion-by-light policy table used at inference." />
+  <Fragment slot="caption">**L2 sensor calibration.** A contextual bandit chooses bounded ISO/exposure deltas from device and environmental context, rewarded by L3 perception (confidence + sharpness). The learned policy is consolidated into a motion × light table (e.g. a *(FAST, BRIGHT)* reading maps to *FastExp / LowISO*) for fast on-device inference.</Fragment>
+</Figure>
+
+## Results
+
+Against an auto-exposure baseline, ATI holds exposure and ISO in ranges that keep frames sharp under changing light, rather than chasing brightness. In the routed end-to-end evaluation (L3-L4 split inference), this lifts overall accuracy from **53.8% to 88%** while cutting remote L4 invocations by **43.3%**. The per-stage breakdown below shows where the gains come from: on-device perception (L3) accuracy rises sharply, and the system escalates to L4 far less often.
+
+<Figure>
+  <Picture slot="figure" src={results} alt="(a) Time series of lux, exposure, ISO, and sharpness for Auto-Exposure vs. ATI across a varying-light trajectory. (b) Bar charts: L3 accuracy rises from 64% to 100%, while L4 call rate falls from 22% to 4% with accuracy rising from 68% to 100%." />
+  <Fragment slot="caption">**(a)** ATI keeps exposure/ISO in sharpness-preserving ranges as lighting varies, rather than maximizing brightness. **(b)** On-device perception (L3) accuracy reaches 100%, while escalation to L4 drops from 22% to 4%, doing more on-device and calling the cloud less.</Fragment>
+</Figure>
+
+## Qualitative comparison
+
+The effect is most visible on hard cases. Auto-exposure smears moving targets; naive electronic image stabilization darkens the frame; the L1 reflex layer recovers a usable image; and adding the L2 calibration policy yields a sharp, well-exposed capture.
+
+<Figure>
+  <Picture slot="figure" src={qualitative} alt="Qualitative comparison on Teddy and Ping-pong Ball targets across four configurations: Auto-Exposure (AE), Electronic Image Stabilization, Brainstem (L1), and Brainstem (L1) + Cerebellum (L2). The combined L1+L2 column is sharpest and best-exposed." />
+  <Fragment slot="caption">Across moving targets, **L1 + L2 together** produce the sharpest, best-exposed frames, visibly outperforming auto-exposure and stabilization-only baselines.</Fragment>
+</Figure>
+
+## Beyond vision: auditory ATI
+
+The sensor-first principle is not specific to cameras. Applied to on-device audio capture, an ATI gain policy improves the signal-to-noise ratio over standard automatic gain control in a controlled noise-plus-signal setup.
+
+<Figure>
+  <Picture slot="figure" src={auditory} alt="(a) Auditory ATI test setup with a noise speaker and a signal speaker each 30 cm from the recording phone. (b) SNR distribution: AGC mean 4.88 dB vs. ATI mean 5.19 dB, a +0.31 dB gain." />
+  <Fragment slot="caption">**Auditory ATI.** In a controlled noise/signal setup, an ATI gain policy raises mean SNR from 4.88 dB (AGC) to 5.19 dB, evidence that active, sensor-first control generalizes across modalities.</Fragment>
+</Figure>
+
+## Demo video
+
+<YouTubeVideo videoId="ck4-pPziEZ0" />
+
+<h2 id="bibtex">BibTeX citation</h2>
+
+```bibtex
+@inproceedings{10.1145/3745756.3809242,
+  author = {Choi, You Rim and Park, Subeom and Kim, Hyung-Sin},
+  title = {[Emerging Ideas] Artificial Tripartite Intelligence: A Bio-Inspired, Sensor-First Architecture for Physical AI},
+  year = {2026},
+  isbn = {9798400720277},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/3745756.3809242},
+  doi = {10.1145/3745756.3809242},
+  booktitle = {Proceedings of the 24th Annual International Conference on Mobile Systems, Applications and Services},
+  pages = {839--853},
+  numpages = {15},
+  keywords = {physical AI, bio-inspired AI, adaptive sensing, offloading},
+  location = {University of Cambridge, Cambridge, United Kingdom},
+  series = {MobiSys '26}
+}
+```

@@ -1,0 +1,27 @@
+---
+import type { Author } from "../types/types";
+
+interface Props {
+  authors: Author[];
+}
+
+const { authors } = Astro.props;
+---
+
+<div class="flex flex-row flex-wrap justify-center gap-x-6 gap-y-2 text-xl">
+  {
+    authors.map((author) => (
+      <span class="inline-flex flex-row whitespace-nowrap">
+        {author.url ? <a href={author.url}>{author.name}</a> : <span>{author.name}</span>}
+        {author.notes && (
+          <sup class="top-[-0.3em] text-sm">
+            {author.notes.map(
+              (note, index, array) =>
+                note + (index < array.length - 1 ? "," : ""),
+            )}
+          </sup>
+        )}
+      </span>
+    ))
+  }
+</div>
